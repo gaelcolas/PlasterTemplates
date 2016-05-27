@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<plasterManifest version='0.0.1'>
+    <metadata>
+        <id>KitchenDSC init</id>
+        <!-- For display by UI's in a menu list -->
+        <title>New Kitchen DSC template</title>
+        <!-- For display by UI's in hover help -->
+        <description>Plaster template for Getting Started with Test Kitchen.</description>
+        <version>0.1.0</version>
+        <tags>Module, ModuleManifest, Build</tags>
+    </metadata>
+    <parameters>
+        <parameter name='TestKitchenName' type='input' required='true' prompt='Enter the name of the kitchen test you are creating'/>
+        <parameter name='vmpassword' type='input' required='false' prompt='Enter the admin password for your vm, in clear text (this will be visible in the unattend.xml)' default='P@ssw0rd' />
+        <parameter name='Version' type='input' default='1.0.0' store='true' prompt='Enter the version number for the Test'/>
+        <parameter name='FullName' type='input' required='true' prompt='Enter your fullname'/>
+        <parameter name='Options' type='multichoice' default='0,2' prompt='Select desired options'>
+            <choice label='&amp;Pester Integration test support'
+                    help="Adds Tests directory and a starter Pester Tests file."
+                    value="Pester"/>
+            <choice label='P&amp;Sake build script'
+                    help="Adds a PSake build script that generates the module directory for publishing to the PSGallery."
+                    value="PSake"/>
+            <choice label='&amp;Git'
+                    help="Adds a .gitignore file."
+                    value="Git"/>
+        </parameter>
+        <parameter name='addUnattendxmlInIso' type='choice' default='2' prompt='Do you want to add an unattend iso with a preopopulated unattend.xml?'>
+            <choice label='&amp;True'
+                    help="Compile an ISO with unattend.xml"
+                    value="True"/>
+            <choice label='&amp;false'
+                    help="The vm will boot without unattend.xml in an iso mounted at boot time as DVDROM."
+                    value="False"/>
+        </parameter>
+        <parameter name='Editor' type='choice' default='2' prompt='Which editor do you use'>
+            <choice label='&amp;ISE'
+                    help="Your editor is PowerShell ISE."
+                    value="ISE"/>
+            <choice label='&amp;Visual Studio Code'
+                    help="Your editor is Visual Studio Code."
+                    value="VSCode"/>
+            <choice label='&amp;None'
+                    help="No editor specified."
+                    value="None"/>
+        </parameter>
+        <parameter name='isAutologonEnabled' type='choice' default='1' prompt='Do you want your VM to have autoLogon enabled'>
+            <choice label='&amp;true'
+                    help="enabling autologon."
+                    value="true"/>
+            <choice label='&amp;false'
+                    help="disabling autologon"
+                    value="VSCode"/>
+        </parameter>
+        <parameter name='License' type='choice' default='2' prompt='Select a license for your module'>
+            <choice label='&amp;Apache'
+                    help="Adds an Apache license file."
+                    value="Apache"/>
+            <choice label='&amp;MIT'
+                    help="Adds an MIT license file."
+                    value="MIT"/>
+            <choice label='&amp;None'
+                    help="No license specified."
+                    value="None"/>
+        </parameter>
+        <parameter name='execute' type='multichoice' default='' prompt='executes powershell code'>
+            <choice label='&amp;script'
+                    help="Executes a script"
+                    value="gitinit.script"/>
+            <choice label='&amp;PsakeTask'
+                    help="Executes a PsakeTask"
+                    value="gitinit.psakeTask"/>
+            <choice label='&amp;function'
+                    help="Executes a function within a script"
+                    value="gitinit.function"/>
+        </parameter>
+    </parameters>
+    <dependencies>
+        <dependency id="another-template-id??"/>
+    </dependencies>
+    <content>
+        <file source='Unattend.xml'
+              destination='Unattend.xml'
+              template='true'
+              condition='$PLASTER_PARAM_addUnattendxmlInIso -eq "True"'/>
+        <file source='_kitchen.yml'
+              template='true'
+              destination='.kitchen.yml' />
+        <file source='_gitignore'
+              destination='.gitignore'
+              condition='$PLASTER_PARAM_Options -contains "Git"'/>
+        <file source='ApacheLicense.txt'
+              destination='LICENSE.txt'
+              template='true'
+              condition="$PLASTER_PARAM_License -eq 'Apache'"/>
+        <file source='MITLicense.txt'
+              destination='LICENSE.txt'
+              template='true'
+              condition="$PLASTER_PARAM_License -eq 'MIT'"/>
+        <file source='Build.ps1'
+              destination='Build.ps1'
+              condition='$PLASTER_PARAM_Options -contains "PSake"'/>
+        <file source='examples\dsc_configuration.ps1'
+              destination='examples\dsc_configuration.ps1'
+              template='true'/>
+        <file source='Tests\Integration\Default.test.ps1'
+              destination='tests/integration/default/pester/example.test.ps1'
+              condition="$true"/>
+        <execute source='scripts\IsoFile.ps1'
+                 type='scriptfunction'
+                 function='New-IsoFile'
+                 condition='$PLASTER_PARAM_addUnattendxmlInIso -eq "true"'>
+                 <parameters>
+                     <parameter name='Path' value='${PWD}\unattendxml.iso'/>
+                     <parameter name='Source' value='unattend.xml'/>
+                 </parameters>
+        </execute>
+        <modify path='.kitchen.yml'
+                encoding='utf8'
+                condition='$PLASTER_PARAM_addUnattendxmlInIso -eq "true"'>
+            <replacement pattern='(\s*)#?(\s*)boot_iso_path.*\r\n'>
+             <![CDATA[$1$2boot_iso_path: ${pwd}\unattendxml.iso`r`n]]>
+            </replacement>
+        </modify>
+    </content>
+</plasterManifest>
