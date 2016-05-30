@@ -10,15 +10,64 @@
         <tags>Module, ModuleManifest, Build</tags>
     </metadata>
     <parameters>
+        <parameter name='driverName' type='multichoice' default='0' prompt='Select desired options'>
+            <choice label='&amp;Hyper-V'
+                    help="Use Kitchen-Hyperv as driver"
+                    value="hyperv"/>
+            <choice label='&amp;vagrant'
+                    help="Use kitchen-vagrant as driver"
+                    value="vagrant"/>
+            <choice label='&amp;EC2'
+                    help="Use kitchen-ec2 as driver"
+                    value="ec2"/>
+            <choice label='&amp;CloudStack'
+                    help="Use kitchen-CloudStack as driver"
+                    value="CloudStack"/>
+            <choice label='&amp;Rackspace'
+                    help="Use kitchen-Rackspace as driver"
+                    value="rackspace"/>
+        </parameter>
+        <parameter name='parent_vhd_folder' type='input' required='true' condition='${PLASTER_PARAM_driverName} -eq "hyperv"' prompt='Enter absolute path of the folder containing your base image'/>
+        <parameter name='parent_vhd_name' type='input' required='true' condition='${PLASTER_PARAM_driverName} -eq "hyperv"' prompt='Enter name of your VHD(x)'/>
+        <parameter name='vm_switch' type='input' required='true' condition='${PLASTER_PARAM_driverName} -eq "hyperv"' prompt='Enter name of your vm_switch.'/>
+        <parameter name='useDHCP' type='choice' required='false' default='0' prompt='Do you want to use DHCP?'>
+            <choice label='&amp;Yes'
+                    help="Using any available DHCP server on Network"
+                    value="True"/>
+            <choice label='&amp;No'
+                    help="Not using DHCP, proceed with fixed IP/Subnet mask"
+                    value="False"/>
+        </parameter>
+        <parameter name='vmIP' type='input' required='false' condition='${PLASTER_PARAM_driverName} -eq "hyperv" -and ${PLASTER_PARAM_useDHCP} -eq "False"' prompt='Enter name of your vm ip (for fixed IP, in case of no DHCP).'/>
+        <parameter name='vmNetMask' type='input' required='false' condition='${PLASTER_PARAM_driverName} -eq "hyperv" -and ${PLASTER_PARAM_vmNetMask}' prompt='Enter the subnet mask for that IP.'/>
         <parameter name='TestKitchenName' type='input' required='true' prompt='Enter the name of the kitchen test you are creating'/>
         <parameter name='vmpassword' type='input' required='false' prompt='Enter the admin password for your vm, in clear text (this will be visible in the unattend.xml)' default='P@ssw0rd' />
-        <parameter name='Version' type='input' default='1.0.0' store='true' prompt='Enter the version number for the Test'/>
-        <parameter name='FullName' type='input' required='true' prompt='Enter your fullname'/>
+        <!-- <parameter name='Version' type='input' default='1.0.0' store='true' prompt='Enter the version number for the Test'/> -->
+        <!-- <parameter name='FullName' type='input' required='true' prompt='Enter your fullname'/> -->
+        <parameter name='WMFversion' type='choice' default='0' prompt='Select the WMF version of your VM'>
+            <choice label='&amp;WMF5'
+                    help="WMF 5 RTM or above"
+                    value="wmf5"/>
+            <choice label='&amp;wmf4_with_update'
+                    help="WMF 4 with Windows Update KB3000850 applied"
+                    value="wmf4_with_update" />
+            <choice label='&amp;wmf4'
+                    help="wmf4 without update"
+                    value="wmf4" />
+        </parameter>
+        <parameter name='LCM_allowreboot' type='choice' required='false' default='0' prompt='Configure LCM to reboot if needed'>
+            <choice label='&amp;True'
+                    help="reboot if needed"
+                    value="True"/>
+            <choice label='&amp;False'
+                    help="Do not reboot"
+                    value="false"/>
+        </parameter>
         <parameter name='Options' type='multichoice' default='0,2' prompt='Select desired options'>
             <choice label='&amp;Pester Integration test support'
                     help="Adds Tests directory and a starter Pester Tests file."
                     value="Pester"/>
-            <choice label='P&amp;Sake build script'
+            <choice label='&amp;Sake build script'
                     help="Adds a PSake build script that generates the module directory for publishing to the PSGallery."
                     value="PSake"/>
             <choice label='&amp;Git'
@@ -63,17 +112,6 @@
                     help="No license specified."
                     value="None"/>
         </parameter>
-        <parameter name='execute' type='multichoice' default='' prompt='executes powershell code'>
-            <choice label='&amp;script'
-                    help="Executes a script"
-                    value="gitinit.script"/>
-            <choice label='&amp;PsakeTask'
-                    help="Executes a PsakeTask"
-                    value="gitinit.psakeTask"/>
-            <choice label='&amp;function'
-                    help="Executes a function within a script"
-                    value="gitinit.function"/>
-        </parameter>
     </parameters>
     <dependencies>
         <dependency id="another-template-id??"/>
@@ -113,13 +151,15 @@
                  <parameters>
                      <parameter name='Path' value='${PWD}\unattendxml.iso'/>
                      <parameter name='Source' value='unattend.xml'/>
+                     <!-- <parameter name='force' value='${true}' /> This does not work as ${true} can only be expanded to string, while -switch expect int or bool. -->
                  </parameters>
         </execute>
         <modify path='.kitchen.yml'
-                encoding='utf8'
+                encoding='utf8-nobom'
                 condition='$PLASTER_PARAM_addUnattendxmlInIso -eq "true"'>
             <replacement pattern='(\s*)#?(\s*)boot_iso_path.*\r\n'>
-             <![CDATA[$1$2boot_iso_path: ${pwd}\unattendxml.iso`r`n]]>
+             <![CDATA[$1$2boot_iso_path: ${pwd}\unattendxml.iso
+]]>
             </replacement>
         </modify>
     </content>
